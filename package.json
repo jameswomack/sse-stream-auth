@@ -1,10 +1,11 @@
 {
-  "name": "sse-stream",
-  "version": "0.0.4",
-  "description": "expose html5 server sent events (sse) as a writable stream",
+  "name": "sse-stream-auth",
+  "version": "1.0.0",
+  "description": "A fork of sse-stream with cookie-based auth support",
   "main": "index.js",
   "dependencies": {
-    "through": "~2.2.7"
+    "restify-cookies": "0.1.1",
+    "through": "2.2.7"
   },
   "devDependencies": {},
   "browser": {
@@ -15,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/chrisdickinson/sse-stream.git"
+    "url": "git://github.com/jameswomack/restify-sse-stream.git"
   },
   "keywords": [
     "sse",
