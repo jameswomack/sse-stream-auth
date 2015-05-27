@@ -1,8 +1,12 @@
+/* jshint laxcomma:true */
+
 var assert = require('assert')
   , sse = require('../index')
   , http = require('http')
   , EE = require('events').EventEmitter
   , Stream = require('stream').Stream
+
+global.TEST = true
 
 var tests = [
   test_install_modifies_listeners
@@ -11,6 +15,8 @@ var tests = [
 , test_server_ignores_appropriate_requests
 , test_end_emits_end_event
 , test_server_emits_keepalives_on_listening
+, test_server_creates_client
+, test_server_defaults_to_sse
 ]
 
 start()
@@ -28,15 +34,15 @@ function test_install_modifies_listeners() {
   sse('/sse').install(server)
   assert.equal(server.listeners('request').length, 1)
 
-  sse('/asdf').install(server = http.createServer(function(r, s) { }))
+  sse('/asdf').install(server = http.createServer(function(/*r, s*/) { }))
   assert.equal(server.listeners('request').length, 1)
- 
+
 }
 
 function test_install_twice_raises() {
   var server = http.createServer()
     , _ = sse('/sse')
-    
+
   _.install(server)
 
   assert.throws(function() {
@@ -47,7 +53,7 @@ function test_install_twice_raises() {
 function test_server_emits_connections() {
   var req = make_request()
     , res = make_response()
-    , server = new EE
+    , server = new EE()
     , conn = sse('/sse').install(server)
     , triggered = false
 
@@ -72,20 +78,54 @@ function test_server_emits_connections() {
   assert.ok(triggered)
 }
 
+function test_server_creates_client(ready) {
+  var server = new EE()
+    , conn = sse({ path: '/sse', create: true }).install(server)
+    , req
+    , res = make_response()
+    , path = '/sse/foo'
+
+  conn.once('connection', function(client) {
+    assert.ok(client.req.path === path, 'we received the expected path')
+    assert.ok(client.req.params.channelName === 'foo', 'we received the expected channelName')
+    ready()
+  })
+
+  req = make_request('GET', path)
+  server.emit('request', req, res)
+}
+
+function test_server_defaults_to_sse(ready) {
+  var server = new EE()
+    , conn = sse({ path: '/sse', create: true }).install(server)
+    , req
+    , res = make_response()
+    , path = '/sse'
+
+  conn.once('connection', function(client) {
+    assert.ok(client.req.path === path, 'we received the expected path')
+    assert.ok(client.req.params.channelName === 'sse', 'we received the expected channelName')
+    ready()
+  })
+
+  req = make_request('GET', path)
+  server.emit('request', req, res)
+}
+
 function test_server_ignores_appropriate_requests() {
-  var server = new EE
+  var server = new EE()
     , conn = sse('/sse').install(server)
     , req
     , res = make_response()
 
-  conn.once('connection', function(client) {
+  conn.once('connection', function(/*client*/) {
     assert.fail('unexpected connection from '+req.method+' '+req.url+' accept: '+req.headers.accept)
   })
 
   req = make_request('POST')
   server.emit('request', req, res)
 
-  req = make_request('GET', '/sse/test')
+  req = make_request('GET', '/ffe/test')
   server.emit('request', req, res)
 
   req = make_request('GET', '/sse', 'not-event-stream')
@@ -96,7 +136,7 @@ function test_server_ignores_appropriate_requests() {
 function test_end_emits_end_event() {
   var req = make_request()
     , res = make_response()
-    , server = new EE
+    , server = new EE()
     , conn = sse('/sse').install(server)
     , triggered = false
 
@@ -122,11 +162,10 @@ function test_end_emits_end_event() {
 function test_server_emits_keepalives_on_listening(ready) {
   var req = make_request()
     , res = make_response()
-    , server = new EE
+    , server = new EE()
     , wait = Math.random() * 100 + 20
     , keepalive = 10
     , conn = sse({keepalive: keepalive, path: '/sse'}).install(server)
-    , triggered = false
     , expected = wait / keepalive
 
   assert.ok(!conn.interval)
@@ -154,18 +193,19 @@ function out(what) {
 }
 
 function make_request(method, url, accept) {
-  var ee = new EE
+  var ee = new EE()
 
   ee.socket = {setNoDelay: function() { ee.nodelay = true }}
   ee.method = method || 'GET'
   ee.headers = {accept: accept || 'text/event-stream'}
   ee.url = url || 'http://localhost:80/sse'
+  ee.path = url || '/sse'
 
   return ee
 }
 
 function make_response() {
-  var stream = new Stream
+  var stream = new Stream()
 
   stream.data = ''
   stream.writable = true
@@ -175,7 +215,7 @@ function make_response() {
   }
   stream.write = function(x) {
     stream.data += x
-    return stream.paused 
+    return stream.paused
   }
   stream.end = function(data) {
     if(arguments.length) this.write(data)
