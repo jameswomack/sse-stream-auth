@@ -1,6 +1,6 @@
 {
   "name": "sse-stream-auth",
-  "version": "2.0.2",
+  "version": "3.0.0",
   "description": "A fork of sse-stream with cookie-based auth support",
   "main": "index.js",
   "dependencies": {
