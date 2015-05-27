@@ -57,14 +57,14 @@ function js() {
 
 # API
 
-### sse = require('sse-stream')(path | options)
+### sse = require('sse-stream-auth')(options)
 
 Create a SSE server that emits `connection` events on new, successful eventstream connections.
 
-The argument may either be a string `path` to listen on (defaults to `/sse/`) or an object:
+The argument must be an options object:
 
 ```javascript
-{ path: '/listen/on/this/path'
+{ prefixes: ['/awesomeApp', '/awesomeUsername']
 , keepalive: 1000 }
 ``` 
 
