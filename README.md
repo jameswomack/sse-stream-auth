@@ -1,6 +1,6 @@
 # sse-stream-auth
 
-## This is a fork of sse-stream that adds cookie-based authentication support
+## This is a fork of sse-stream that adds cookie-based authentication support & dynamic connection creation
 
 Expose [HTML5 Server Sent Events](https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events) as an installable appliance on Node.JS `http` servers; connections are emitted as [Writable streams](https://github.com/dominictarr/stream-spec/blob/master/stream_spec.md#writablestream).
 
@@ -9,7 +9,7 @@ Expose [HTML5 Server Sent Events](https://developer.mozilla.org/en-US/docs/Serve
 var http = require('http')
   , fs = require('fs')
   , through = require('through')
-  , sse = require('sse-stream')('/sse')
+  , sse = require('sse-stream-auth')({ create: true }) // Allow dynamic connection creation
   , serv
 
 module.exports = serv = http.createServer(function(req, resp) {
