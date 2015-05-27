@@ -11,7 +11,7 @@ Expose [HTML5 Server Sent Events](https://developer.mozilla.org/en-US/docs/Serve
 var http = require('http')
   , fs = require('fs')
   , through = require('through')
-  , sse = require('sse-stream-auth')({ create: true }) // Allow dynamic connection creation
+  , sse = require('sse-stream-auth')({ prefixes: ['/awesomeApp'], create: true }) // Allow dynamic connection creation
   , serv
 
 module.exports = serv = http.createServer(function(req, resp) {
@@ -29,7 +29,7 @@ sse.on('connection', function(client) {
 
 // client-side code:
 function js() {
-  var es = new EventSource('/sse')
+  var es = new EventSource('/awesomeApp/someChannelNameHere')
     , pre = document.createElement('pre')
     , closed = false
 

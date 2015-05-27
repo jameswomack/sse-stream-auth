@@ -12,6 +12,7 @@ var tests = [
   test_install_modifies_listeners
 , test_install_twice_raises
 , test_server_emits_connections
+, test_server_uses_custom_prefix
 , test_server_ignores_appropriate_requests
 , test_end_emits_end_event
 , test_server_emits_keepalives_on_listening
@@ -31,17 +32,17 @@ function test_install_modifies_listeners() {
   var server = http.createServer()
 
   assert.equal(server.listeners('request').length, 0)
-  sse('/sse').install(server)
+  sse().install(server)
   assert.equal(server.listeners('request').length, 1)
 
-  sse('/asdf').install(server = http.createServer(function(/*r, s*/) { }))
+  sse({prefixes: ['/asdf'] }).install(server = http.createServer(function(/*r, s*/) { }))
   assert.equal(server.listeners('request').length, 1)
 
 }
 
 function test_install_twice_raises() {
   var server = http.createServer()
-    , _ = sse('/sse')
+    , _ = sse()
 
   _.install(server)
 
@@ -54,7 +55,7 @@ function test_server_emits_connections() {
   var req = make_request()
     , res = make_response()
     , server = new EE()
-    , conn = sse('/sse').install(server)
+    , conn = sse().install(server)
     , triggered = false
 
   conn.once('connection', function(client) {
@@ -80,7 +81,7 @@ function test_server_emits_connections() {
 
 function test_server_creates_client(ready) {
   var server = new EE()
-    , conn = sse({ path: '/sse', create: true }).install(server)
+    , conn = sse({ create: true }).install(server)
     , req
     , res = make_response()
     , path = '/sse/foo'
@@ -97,7 +98,7 @@ function test_server_creates_client(ready) {
 
 function test_server_defaults_to_sse(ready) {
   var server = new EE()
-    , conn = sse({ path: '/sse', create: true }).install(server)
+    , conn = sse({ create: true }).install(server)
     , req
     , res = make_response()
     , path = '/sse'
@@ -112,9 +113,26 @@ function test_server_defaults_to_sse(ready) {
   server.emit('request', req, res)
 }
 
+function test_server_uses_custom_prefix(ready) {
+  var server = new EE()
+    , conn = sse({ prefixes: ['/ffe'] }).install(server)
+    , req
+    , res = make_response()
+
+  conn.once('connection', function(client) {
+    assert.ok(client.req.path === '/ffe/test', 'we received the expected path')
+    assert.ok(client.req.params.channelName === 'test', 'we received the expected channelName')
+    assert.ok(conn.Validator.accept.matchers.indexOf('/ffe/:channelName') !== -1, 'validator matchers contains ffe')
+    ready()
+  })
+
+  req = make_request('GET', '/ffe/test')
+  server.emit('request', req, res)
+}
+
 function test_server_ignores_appropriate_requests() {
   var server = new EE()
-    , conn = sse('/sse').install(server)
+    , conn = sse().install(server)
     , req
     , res = make_response()
 
@@ -137,7 +155,7 @@ function test_end_emits_end_event() {
   var req = make_request()
     , res = make_response()
     , server = new EE()
-    , conn = sse('/sse').install(server)
+    , conn = sse().install(server)
     , triggered = false
 
   conn.once('connection', function(client) {
@@ -165,7 +183,7 @@ function test_server_emits_keepalives_on_listening(ready) {
     , server = new EE()
     , wait = Math.random() * 100 + 20
     , keepalive = 10
-    , conn = sse({keepalive: keepalive, path: '/sse'}).install(server)
+    , conn = sse({keepalive: keepalive}).install(server)
     , expected = wait / keepalive
 
   assert.ok(!conn.interval)
